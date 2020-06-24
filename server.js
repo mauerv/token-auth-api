@@ -13,61 +13,20 @@ const web3 = new Web3();
 app.use(cors());
 app.use(bodyParser.json());
 
-// function checkSig(req, res) {
-//   var sig = req.body.sig;
-//   var owner = req.body.owner;
-//   // Message data
-//   var data = "0x123123";
-//   var message = ethUtil.toBuffer(data);
-//   var msgHash = ethUtil.hashPersonalMessage(message);
-//   // Get the address of whoever signed this message
-//   var signature = ethUtil.toBuffer(sig);
-//   var sigParams = ethUtil.fromRpcSig(signature);
-//   var publicKey = ethUtil.ecrecover(
-//     msgHash,
-//     sigParams.v,
-//     sigParams.r,
-//     sigParams.s
-//   );
-//   var sender = ethUtil.publicToAddress(publicKey);
-//   var addr = ethUtil.bufferToHex(sender);
-
-//   // Determine if it is the same address as 'owner'
-//   var match = false;
-//   if (addr == owner) {
-//     match = true;
-//   }
-
-//   if (match) {
-//     // If the signature matches the owner supplied, create a
-//     // JSON web token for the owner that expires in 24 hours.
-//     var token = jwt.sign({ user: req.body.addr }, "0x234234", {
-//       expiresIn: "1d",
-//     });
-//     res.send(200, { success: 1, token: token });
-//   } else {
-//     // If the signature doesn"t match, error out
-//     res.send(500, { err: "Signature did not match." });
-//   }
-// }
-
-// function auth(req, res, next) {
-//   jwt.verify(req.body.token, "i am another string", function (err, decoded) {
-//     if (err) {
-//       res.send(500, { error: "Failed to authenticate token." });
-//     } else {
-//       req.user = decoded.user;
-//       next();
-//     }
-//   });
-// }
-
 app.post("/validate-signature", async (req, res) => {
   let { owner, sig } = req.body;
+
+  // Make sure owner is a valid address and is lowercase.
+  if (!web3.utils.isAddress(owner)) {
+    res.status(400).send(new Error(`${owner} is an invalid address.`));
+  }
   owner = owner.toLowerCase();
+
+  // The same data that the client signs in hex format.
   const rawData = "Alohomora";
   const data = web3.utils.toHex(rawData);
 
+  // Get the same hash message that eth.personal.sign() generates with the correct prefix.
   const message = util.toBuffer(data);
   const msgHash = util.hashPersonalMessage(message);
 
