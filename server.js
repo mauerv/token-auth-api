@@ -1,45 +1,95 @@
+const express = require("express");
+const app = express();
+const bodyParser = require("body-parser");
+var cors = require("cors");
+var jwt = require("jsonwebtoken");
 var util = require("ethereumjs-util");
+const Web3 = require("web3");
+require("dotenv").config();
 
-// Sign
-const owner = "0x1d076fcf1598C285D1c2f0685202AfaCdBcB0832".toLowerCase();
-const msg = "Learning to sign and validate.";
-const hex = "0x4c6561726e696e6720746f207369676e20616e642076616c69646174652e";
-const sig =
-  "0xc1d6fdce5950e0e3dae8f71118ff4b14cdacf18207bf16e339562ac22e9b50870db20f35bbd2f66eefe823b95cec78e676c1e36a5b5596142f934d12a1e1e7791b";
+const port = 5000;
+const web3 = new Web3();
 
-// Validate
-const message = util.toBuffer(hex);
-const msgHash = util.hashPersonalMessage(message);
+app.use(cors());
+app.use(bodyParser.json());
 
-const signature = util.toBuffer(sig);
-const sigParams = util.fromRpcSig(signature);
-const publicKey = util.ecrecover(
-  msgHash,
-  sigParams.v,
-  sigParams.r,
-  sigParams.s
+// function checkSig(req, res) {
+//   var sig = req.body.sig;
+//   var owner = req.body.owner;
+//   // Message data
+//   var data = "0x123123";
+//   var message = ethUtil.toBuffer(data);
+//   var msgHash = ethUtil.hashPersonalMessage(message);
+//   // Get the address of whoever signed this message
+//   var signature = ethUtil.toBuffer(sig);
+//   var sigParams = ethUtil.fromRpcSig(signature);
+//   var publicKey = ethUtil.ecrecover(
+//     msgHash,
+//     sigParams.v,
+//     sigParams.r,
+//     sigParams.s
+//   );
+//   var sender = ethUtil.publicToAddress(publicKey);
+//   var addr = ethUtil.bufferToHex(sender);
+
+//   // Determine if it is the same address as 'owner'
+//   var match = false;
+//   if (addr == owner) {
+//     match = true;
+//   }
+
+//   if (match) {
+//     // If the signature matches the owner supplied, create a
+//     // JSON web token for the owner that expires in 24 hours.
+//     var token = jwt.sign({ user: req.body.addr }, "0x234234", {
+//       expiresIn: "1d",
+//     });
+//     res.send(200, { success: 1, token: token });
+//   } else {
+//     // If the signature doesn"t match, error out
+//     res.send(500, { err: "Signature did not match." });
+//   }
+// }
+
+// function auth(req, res, next) {
+//   jwt.verify(req.body.token, "i am another string", function (err, decoded) {
+//     if (err) {
+//       res.send(500, { error: "Failed to authenticate token." });
+//     } else {
+//       req.user = decoded.user;
+//       next();
+//     }
+//   });
+// }
+
+app.post("/validate-signature", async (req, res) => {
+  let { owner, sig } = req.body;
+  owner = owner.toLowerCase();
+  const rawData = "Alohomora";
+  const data = web3.utils.toHex(rawData);
+
+  const message = util.toBuffer(data);
+  const msgHash = util.hashPersonalMessage(message);
+
+  const signature = util.toBuffer(sig);
+  const sigParams = util.fromRpcSig(signature);
+  const publicKey = util.ecrecover(
+    msgHash,
+    sigParams.v,
+    sigParams.r,
+    sigParams.s
+  );
+  const sender = util.pubToAddress(publicKey);
+  const address = util.bufferToHex(sender);
+
+  let match = false;
+  if (address === owner) {
+    match = true;
+  }
+
+  res.send(match);
+});
+
+app.listen(port, () =>
+  console.log(`Signature validation running in port ${port}`)
 );
-const sender = util.pubToAddress(publicKey);
-const address = util.bufferToHex(sender);
-
-let match = false;
-if (String(address) === owner) {
-  match = true;
-}
-console.log(match);
-// const { v, r, s } = util.fromRpcSig(signature);
-// const prefix = new Buffer("\x19Ethereum Signed Message:\n");
-// const prefixedMsg = util.keccak(
-//   Buffer.concat([prefix, new Buffer(String(hex.length)), new Buffer(hex)])
-// );
-
-// const pub = util.ecrecover(util.toBuffer(hex), v, r, s);
-// console.log(pub);
-
-/*
-const prefix = "\x19Ethereum Signed Message:\n";
-const prefixedMessage = "0x" + prefix + message.length + message;
-const prefixedMessageBuffer = util.toBuffer(prefixedMessage);
-const hashedMessage = util.keccak(prefixedMessageBuffer);
-const { v, r, s } = util.fromRpcSig(signature);
-*/
