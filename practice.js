@@ -21,8 +21,14 @@ const sender = util.pubToAddress(publicKey);
 const address = util.bufferToHex(sender);
 
 let match = false;
-if (address === owner) {
-  match = true;
-}
+if (address === owner) match = true;
 
+if (match) {
+  var token = jwt.sign({ user: req.body.addr }, "i am another string", {
+    expiresIn: "1d",
+  });
+  res.send(200, { success: 1, token: token });
+} else {
+  res.send(500, { err: "Signature did not match." });
+}
 console.log(match);
